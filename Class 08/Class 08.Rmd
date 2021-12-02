@@ -1,0 +1,289 @@
+---
+title: "Class 08"
+author: "Nadia Haghani"
+date: "10/21/2021"
+output: html_document
+---
+
+First up is clustering methods
+
+# Kmeans clustering
+
+The function in base R to do Kmeans clustering is called
+'kmeans()'.
+
+First make up some data where we know what the answer should be.
+
+```{r}
+tmp <- c(rnorm(30, -3), rnorm(30, 3)) #rnorm gives random data around ( , __)
+x <- cbind(x=rev(tmp), y=tmp) #cbind binds columns, rbind binds rows
+plot(x)
+```
+
+> Q. Can we use 'kmeans()' to cluster this data setting k 2 and nstart to 20?
+
+```{r}
+km <- kmeans(x, centers=2, nstart=20)
+km
+```
+
+
+> How many points in each cluster?
+
+```{r}
+km$size
+```
+
+
+> Q. What 'component' of your result object details cluster 
+assignment/membership?
+
+```{r}
+km$cluster
+```
+
+
+> Q. What 'component of your result object details cluster center?
+
+```{r}
+km$centers
+```
+
+> Q. Plot x colored by the kmeans cluster assignment and add cluster centers
+as blue points
+
+
+```{r}
+plot(x, col=km$cluster)
+points(km$centers, col="blue", pch = 15, cex = 2)
+```
+
+# hclust - Hierarchical Clustering
+
+A big limitation with k-means is that we have to tell it K - the number of clusters we want
+
+Analyze this same dataset with 'hclust()'
+
+Demonstrate use of 'dist()', 'hclust()', 'plot()' and 'cutree()' functions to do clustering, generate dendrograms and return cluster assignments
+
+
+
+```{r}
+hc <- hclust(dist(x))
+hc
+```
+There is a plot method for hclust result objects. Let's see it.
+
+```{r}
+plot(hc)
+```
+
+To get our cluster memebership vector, we have to do a wee bit more work. We have to "cut" the tree where we think it makes sense. For this we use the 'cutree()' function.
+
+```{r}
+cutree(hc, h=6)
+```
+
+You can also call 'cutree()' setting k = numer of grps/clusters you want.
+
+```{r}
+grps <- cutree(hc, k=3)
+```
+
+Make our results plot
+
+```{r}
+plot(x, col=grps)
+```
+
+
+
+# 1. PCA of UK food data
+
+Read URL
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url)
+```
+
+> Q1. How many rows and columns are in your new data frame named x? What R functions could you use to answer this questions?
+
+```{r}
+nrow(x)
+ncol(x)
+```
+
+So, there are 17 rows and 5 columns in our dataframe. We can also use the 'dim()' function
+
+```{r}
+dim(x)
+```
+
+Check your data to make sure nothing odd happened during its upload
+
+```{r}
+# View(x)
+```
+
+The first column should set to row-names. We can do this in two ways
+
+The first way is setting the rownames to the first column in x.
+
+```{r}
+rownames(x) <- x[,1]
+x <- x[,-1]
+head(x)
+```
+
+The problem is that this code overrides other code, so a better way to write this code is to correct row-names while reading the data file.
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url, row.names = 1)
+head(x)
+```
+
+Now, we can check the dimensions again.
+
+```{r}
+dim(x)
+```
+
+We see there are 17 rows and 4 columns now.
+
+> Q2. Which approach to solving the ‘row-names problem’ mentioned above do you prefer and why? Is one approach more robust than another under certain circumstances?
+
+
+The second approach is more robust than the other because it will make sure while reading the dataframe, we set the first column to the row names.
+
+
+# Spotting differences and trends
+
+Plot our data in a bar plot.
+```{r}
+barplot(as.matrix(x), beside=T, col=rainbow(nrow(x)))
+```
+
+> Q3. Changing what optional argument in the above 'barplot()' function results in the following plot?
+
+Take out 'beside = T'. If 'beside = T' the columns are portrayed as bars next to eachother.
+
+```{r}
+barplot(as.matrix(x), col=rainbow(nrow(x)))
+```
+
+
+> Q5. Generating all pairwise plots may help somewhat. Can you make sense of the following code and resulting figure? What does it mean if a given point lies on the diagonal for a given plot?
+
+
+```{r}
+pairs(x, col=rainbow(10), pch=16)
+```
+
+
+The pairs plot takes x as an input and generates a matrix of scatterplots.
+Color is rainbow, and pch is a graphical parameter.
+
+The graphs compare a single country to every other country.
+
+If a given point lies on the diagonal for a given plot, then the value would be the same for both countries. Northern Ireland seems to be the most dissimilar from other countries, as told by the points in the 4th row being the furthest from the diagonal line.
+
+
+> Q6. What is the main differences between N. Ireland and the other countries of the UK in terms of this data-set?
+
+
+# PCA to the rescue!
+
+Use the 'prcomp()' PCA function
+
+```{r}
+pca <- prcomp(t(x))
+summary(pca)
+```
+
+> Q7. Complete the code below to generate a plot of PC1 vs PC2. The second line adds text labels over the data points.
+
+Plot PC1 vs PC2
+Add text labels over the data points
+
+```{r}
+plot(pca$x[,1], pca$x[,2],  xlab="PC1", ylab="PC2", xlim=c(-270,500))
+text(pca$x[,1], pca$x[,2], colnames(x))
+```
+
+> Q8. Customize your plot so that the colors of the country names match the colors in our UK and Ireland map and table at start of this document.
+
+
+```{r}
+plot(pca$x[,1], pca$x[,2],  xlab="PC1", ylab="PC2", xlim=c(-270,500))
+text(pca$x[,1], pca$x[,2], colnames(x), col = c("orange", "red", "blue", "green"))
+```
+
+We can use the square of pca$sdev , which stands for “standard deviation”, to calculate how much variation in the original data each PC accounts for.
+
+
+```{r}
+v <- round(pca$sdev^2/sum(pca$sdev^2)*100)
+v
+```
+
+```{r}
+z <- summary(pca)
+z$importance
+```
+
+
+Now, summarize the eigenvalues in a barplot.
+
+```{r}
+barplot(v, xlab="Principal Component", ylab="Percent Variation")
+```
+
+
+# Digging deeper (variable loadings)
+
+Look at the influence of each of the original variables on the principle components.
+
+Focus on PC1
+
+```{r}
+par(mar=c(10,3,0.35,0))
+barplot(pca$rotation[,1],las=2)
+```
+
+
+We see that foods with the largest push Northern Ireland to the right positive side of the plot. We also see that foods with negative scores push other countries ot the left side of the plot.
+
+
+> Q9. Generate a similar ‘loadings plot’ for PC2. What two food groups feature prominantely and what does PC2 maninly tell us about?
+
+```{r}
+par(mar=c(10,3,0.35,0))
+barplot(pca$rotation[,2],las=2)
+```
+
+What two food groups feature prominantely and what does PC2 maninly tell us about?
+
+Fresh potatoes and soft drinks feature prominently.
+
+PC2 mainly tells us that fresh potatoes push N. Ireland to the right side of the plot while soft drinks push other countries to the left side of the plot.
+
+
+# Bioplots
+
+
+```{r}
+biplot(pca)
+```
+
+
+## 2. PCA of RNA-seq data
+
+
+
+
+
+
+
+
